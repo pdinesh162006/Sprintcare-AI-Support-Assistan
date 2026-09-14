@@ -1,0 +1,26 @@
+# Raw large datasets (twcs.csv is ~500MB, exceeding GitHub limits)
+data/raw/
+*.csv.zip
+*.tar.gz
+
+# Python bytecode & cache
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Environment variables & local configs
+.env
+.venv/
+venv/
+ENV/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db

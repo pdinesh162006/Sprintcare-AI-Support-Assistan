@@ -8,3 +8,4 @@ python-dotenv>=1.0.0
 tqdm>=4.66.0
 requests>=2.31.0
 kagglehub>=0.2.0
+emoji>=2.10.0

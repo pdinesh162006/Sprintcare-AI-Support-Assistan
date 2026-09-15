@@ -22,6 +22,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.svm import LinearSVC
 from sklearn.calibration import CalibratedClassifierCV
 from sklearn.linear_model import LogisticRegression
+from sklearn.dummy import DummyClassifier
 from sklearn.metrics import f1_score, precision_score, recall_score, classification_report
 from fastembed import TextEmbedding
 
@@ -72,15 +73,50 @@ def create_stratified_split(
     return train_records, test_records
 
 
+def train_trivial_baseline(
+    X_train: List[str],
+    y_train: List[str],
+    X_test: List[str],
+    y_test: List[str],
+) -> Tuple[Any, Dict[str, Any]]:
+    """Trains Trivial Baseline: Majority Class / DummyClassifier."""
+    print("\n" + "=" * 50)
+    print("Training Trivial Baseline: Majority Class DummyClassifier")
+    print("=" * 50)
+
+    clf = DummyClassifier(strategy="most_frequent")
+    clf.fit(X_train, y_train)
+
+    y_pred = clf.predict(X_test)
+
+    macro_f1 = float(f1_score(y_test, y_pred, average="macro", zero_division=0))
+    weighted_p = float(precision_score(y_test, y_pred, average="weighted", zero_division=0))
+    weighted_r = float(recall_score(y_test, y_pred, average="weighted", zero_division=0))
+    report = classification_report(y_test, y_pred, output_dict=True, zero_division=0)
+
+    print(f"Macro-F1          : {macro_f1:.4f}")
+    print(f"Weighted Precision: {weighted_p:.4f}")
+    print(f"Weighted Recall   : {weighted_r:.4f}")
+
+    metrics = {
+        "model_name": "Trivial Baseline (Majority Class)",
+        "macro_f1": round(macro_f1, 4),
+        "weighted_precision": round(weighted_p, 4),
+        "weighted_recall": round(weighted_r, 4),
+        "detailed_report": report,
+    }
+    return clf, metrics
+
+
 def train_tfidf_svm(
     X_train: List[str],
     y_train: List[str],
     X_test: List[str],
     y_test: List[str],
 ) -> Tuple[Any, Dict[str, Any]]:
-    """Trains TF-IDF + Calibrated LinearSVC classifier."""
+    """Trains Simple Baseline: TF-IDF + Calibrated LinearSVC classifier."""
     print("\n" + "=" * 50)
-    print("Training Baseline 1: TF-IDF + Calibrated LinearSVC")
+    print("Training Baseline 1 (Simple): TF-IDF + Calibrated LinearSVC")
     print("=" * 50)
 
     vectorizer = TfidfVectorizer(
@@ -210,7 +246,11 @@ def main():
     X_test = [r["text"] for r in test_records]
     y_test = [r["intent"] for r in test_records]
 
-    # Baseline 1: TF-IDF + SVM
+    # Baseline 0: Trivial Baseline (Majority Class)
+    trivial_clf, trivial_metrics = train_trivial_baseline(X_train, y_train, X_test, y_test)
+    joblib.dump(trivial_clf, os.path.join(args.models_dir, "trivial_majority_model.joblib"))
+
+    # Baseline 1: Simple Baseline (TF-IDF + SVM)
     tfidf_pipeline, tfidf_metrics = train_tfidf_svm(X_train, y_train, X_test, y_test)
     joblib.dump(tfidf_pipeline, os.path.join(args.models_dir, "tfidf_svm_model.joblib"))
 
@@ -222,6 +262,7 @@ def main():
     print("\n" + "=" * 65)
     print(f"{'Model':<42} | {'Macro-F1':<8} | {'Weighted P':<10} | {'Weighted R':<10}")
     print("-" * 65)
+    print(f"{trivial_metrics['model_name']:<42} | {trivial_metrics['macro_f1']:<8.4f} | {trivial_metrics['weighted_precision']:<10.4f} | {trivial_metrics['weighted_recall']:<10.4f}")
     print(f"{tfidf_metrics['model_name']:<42} | {tfidf_metrics['macro_f1']:<8.4f} | {tfidf_metrics['weighted_precision']:<10.4f} | {tfidf_metrics['weighted_recall']:<10.4f}")
     print(f"{bert_metrics['model_name']:<42} | {bert_metrics['macro_f1']:<8.4f} | {bert_metrics['weighted_precision']:<10.4f} | {bert_metrics['weighted_recall']:<10.4f}")
     print("=" * 65)
@@ -231,7 +272,7 @@ def main():
         "dataset_size": len(records),
         "train_size": len(train_records),
         "held_out_test_size": len(test_records),
-        "baselines": [tfidf_metrics, bert_metrics],
+        "baselines": [trivial_metrics, tfidf_metrics, bert_metrics],
     }
 
     summary_path = os.path.join(args.report_dir, "baseline_comparison.json")

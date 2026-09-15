@@ -181,11 +181,12 @@ python -m eval.run_harness
 ## Benchmark Results
 
 ### 1. Intent Classification Performance (Held-out Test Split, N=77)
-| Model | Macro-F1 | Weighted Precision | Weighted Recall |
-| :--- | :---: | :---: | :---: |
-| **TF-IDF + LinearSVC** | `0.4346` | `0.4616` | `0.4286` |
-| **Dense Embedding / BGE + LogisticRegression** | **`0.6359`** | **`0.6621`** | **`0.6494`** |
-| **LLM Few-Shot In-Context Classifier** | `0.5228` | `0.6082` | `0.5714` |
+| Model Paradigm | Architecture | Macro-F1 | Weighted Precision | Weighted Recall |
+| :--- | :--- | :---: | :---: | :---: |
+| **Baseline 0: Trivial Baseline** | Majority Class (`DummyClassifier`, most_frequent) | `0.0357` | `0.0204` | `0.1429` |
+| **Baseline 1: Simple Baseline** | TF-IDF (1-2 ngrams) + Calibrated LinearSVC | `0.4346` | `0.4616` | `0.4286` |
+| **Baseline 2: Dense Embedding Model** | `BAAI/bge-small-en-v1.5` + LogisticRegression | **`0.6359`** | **`0.6621`** | **`0.6494`** |
+| **Few-Shot In-Context Classifier** | 14 Exemplars + Semantic Cosine Weighting | `0.5228` | `0.6082` | `0.5714` |
 
 ### 2. Golden Evaluation Set Performance (200 Instances)
 | Evaluation Bucket | Instances | Faithfulness | Context Precision | Context Recall | G-Eval (1–5) | Pass Rate |
@@ -204,10 +205,19 @@ python -m eval.run_harness
 
 ## Detailed Reports & Documentation
 
-- 📊 **[Full Evaluation Report (report/REPORT.md)](report/REPORT.md)**: Real metrics, top 5 failure mode transcripts, the mandatory *"What is misleading about my headline number"* analysis, and production roadmap.
-- 📝 **[Engineering Decision Log (report/decision_log.md)](report/decision_log.md)**: Real engineering trade-offs and rationale behind all 7 architectural decisions.
-- 📚 **[Citations & References (report/citations.md)](report/citations.md)**: Formal bibliographic references for datasets, models, tools, and evaluation frameworks.
-- 🎯 **[Golden Set Methodology (eval/golden_set/README.md)](eval/golden_set/README.md)**: Bucket taxonomy, labeling rubrics, and formal anti-leakage proof.
+- 📊 **[Full Evaluation Report (report/REPORT.md)](report/REPORT.md)**: Problem framing, what "good" means & what we chose NOT to build, real metrics, top 5 failure modes with real transcripts, mandatory *"What is misleading about my headline number"* analysis, and 1-week production roadmap.
+- 📝 **[Engineering Decision Log (report/decision_log.md)](report/decision_log.md)**: 14 non-obvious engineering decisions, rationale, and trade-offs.
+- 📚 **[Citations & References (report/citations.md)](report/citations.md)**: Formal bibliographic citations for all borrowed datasets, models, algorithms, and libraries.
+- 🎯 **[Golden Set Methodology (eval/golden_set/README.md)](eval/golden_set/README.md)**: Stratified bucket taxonomy, sampling and labeling notes, and automated anti-leakage audit.
+
+---
+
+## Submission Details
+
+- **Submission Form**: [https://intelligent-bar-256.notion.site/39492cbf0da2800682cfc78a600a745f](https://intelligent-bar-256.notion.site/39492cbf0da2800682cfc78a600a745f)
+- **GitHub Repository**: [https://github.com/pdinesh162006/Sprintcare-AI-Support-Assistan.git](https://github.com/pdinesh162006/Sprintcare-AI-Support-Assistan.git)
+- **Branch**: `main`
+- **Reproducibility Command**: `python run_reproducible_pipeline.py` (Reproduces headline results in ~6.12 mins)
 
 ---
 

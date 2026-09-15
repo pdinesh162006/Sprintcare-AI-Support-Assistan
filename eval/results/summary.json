@@ -1,0 +1,51 @@
+{
+  "total_instances_evaluated": 200,
+  "overall_metrics": {
+    "mean_faithfulness": 0.8823,
+    "mean_context_precision": 0.99,
+    "mean_context_recall": 0.99,
+    "mean_geval_score": 4.7328,
+    "geval_pass_rate": 0.95,
+    "under_280_chars_rate": 1.0
+  },
+  "bucket_breakdown": {
+    "production": {
+      "count": 50,
+      "faithfulness": 0.8814,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "geval_score": 4.825,
+      "pass_rate": 1.0
+    },
+    "adversarial": {
+      "count": 50,
+      "faithfulness": 0.8771,
+      "context_precision": 0.96,
+      "context_recall": 0.96,
+      "geval_score": 4.591,
+      "pass_rate": 0.8
+    },
+    "edge_case": {
+      "count": 50,
+      "faithfulness": 0.8969,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "geval_score": 4.775,
+      "pass_rate": 1.0
+    },
+    "historical_failure": {
+      "count": 50,
+      "faithfulness": 0.8736,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "geval_score": 4.74,
+      "pass_rate": 1.0
+    }
+  },
+  "human_judge_agreement": {
+    "cohens_kappa": 0.1892,
+    "observed_agreement": 0.85,
+    "interpretation": "Slight / Poor Agreement",
+    "sample_size": 40
+  }
+}

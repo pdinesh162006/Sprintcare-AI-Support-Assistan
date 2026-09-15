@@ -17,6 +17,8 @@ import re
 import argparse
 from typing import Dict, List, Any, Optional
 import requests
+from dotenv import load_dotenv
+load_dotenv()
 
 from src.rag.build_index import RAGRetriever
 
@@ -37,7 +39,13 @@ class GroundedReplyGenerator:
         self.retriever = RAGRetriever(vector_store_dir=vector_store_dir)
         self.openai_key = os.environ.get("OPENAI_API_KEY")
         self.gemini_key = os.environ.get("GEMINI_API_KEY")
-        self.model_name = model_name or ("gpt-4o-mini" if self.openai_key else "gemini-1.5-flash" if self.gemini_key else "grounded-local-synthesizer")
+        self.groq_key = os.environ.get("GROQ_API_KEY")
+        self.model_name = model_name or (
+            "gemini-1.5-flash" if self.gemini_key else
+            "groq-llama-3.1-8b" if self.groq_key else
+            "gpt-4o-mini" if self.openai_key else
+            "grounded-local-synthesizer"
+        )
 
     def format_retrieved_context(self, hits: List[Dict[str, Any]]) -> str:
         """Formats retrieved chunks into grounding context."""
@@ -113,6 +121,33 @@ class GroundedReplyGenerator:
             pass
         return None
 
+    def generate_with_groq(self, prompt: str) -> Optional[str]:
+        """Calls Groq Cloud API with Llama-3.1."""
+        if not self.groq_key:
+            return None
+        url = "https://api.groq.com/openai/v1/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {self.groq_key}",
+            "Content-Type": "application/json",
+        }
+        payload = {
+            "model": "llama-3.1-8b-instant",
+            "messages": [
+                {"role": "system", "content": "You are a customer support agent. Obey the 280 character limit strictly."},
+                {"role": "user", "content": prompt}
+            ],
+            "max_tokens": 120,
+            "temperature": 0.3,
+        }
+        try:
+            resp = requests.post(url, headers=headers, json=payload, timeout=10)
+            if resp.status_code == 200:
+                reply = resp.json()["choices"][0]["message"]["content"].strip()
+                return reply
+        except Exception:
+            pass
+        return None
+
     def generate_local_grounded(
         self, customer_query: str, customer_handle: str, hits: List[Dict[str, Any]]
     ) -> str:
@@ -138,10 +173,9 @@ class GroundedReplyGenerator:
         # Append sign-off
         reply = f"{reply} ^Care"
 
-        # Strictly enforce 280 character limit
+        # Character budget guardrail: trim if exceeds 280 chars
         if len(reply) > 280:
-            allowed_len = 280 - len(f"{customer_handle} ") - len("... Please DM us for help. ^Care")
-            truncated = clean_sol[:allowed_len].rsplit(" ", 1)[0]
+            truncated = reply[:240].rsplit(" ", 1)[0]
             reply = f"{customer_handle} {truncated}... Please DM us for help. ^Care"
 
         return reply
@@ -163,13 +197,24 @@ class GroundedReplyGenerator:
         # 2. Build prompt
         prompt = self.build_prompt(customer_query, customer_handle, context_str)
 
-        # 3. Generate via multi-provider
-        raw_reply = self.generate_with_openai(prompt)
-        provider = "openai"
+        # 3. Generate via multi-provider (Gemini -> Groq -> OpenAI -> Local Grounded Synthesizer)
+        raw_reply = None
+        provider = "grounded_synthesizer"
 
-        if not raw_reply:
+        if self.gemini_key:
             raw_reply = self.generate_with_gemini(prompt)
-            provider = "gemini"
+            if raw_reply:
+                provider = "gemini-1.5-flash"
+
+        if not raw_reply and self.groq_key:
+            raw_reply = self.generate_with_groq(prompt)
+            if raw_reply:
+                provider = "groq-llama-3.1"
+
+        if not raw_reply and self.openai_key:
+            raw_reply = self.generate_with_openai(prompt)
+            if raw_reply:
+                provider = "openai"
 
         if not raw_reply:
             raw_reply = self.generate_local_grounded(customer_query, customer_handle, hits)

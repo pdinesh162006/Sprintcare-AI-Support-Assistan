@@ -9,7 +9,7 @@ import os
 import sys
 import json
 from typing import Dict, List, Any, Optional
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Response
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -33,6 +33,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Yellow 'S' SVG Favicon
+SPRINT_S_FAVICON_SVG = """<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'>
+  <rect width='100' height='100' rx='28' fill='%23FFD100'/>
+  <text x='50%' y='53%' dominant-baseline='central' text-anchor='middle' font-family='system-ui, -apple-system, sans-serif' font-weight='900' font-size='62' fill='%23000000'>S</text>
+</svg>"""
+
+@app.get("/favicon.ico")
+async def favicon():
+    return Response(content=SPRINT_S_FAVICON_SVG, media_type="image/svg+xml")
 
 # Initialize pipeline components
 print("Initializing SprintCare AI pipeline components...")
@@ -138,7 +148,9 @@ async def serve_ui():
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SprintCare AI Support Assistant Console</title>
+  <title>SprintCare AI Support Assistant</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='28' fill='%23FFD100'/%3E%3Ctext x='50%25' y='53%25' dominant-baseline='central' text-anchor='middle' font-family='system-ui, -apple-system, sans-serif' font-weight='900' font-size='62' fill='%23000000'%3ES%3C/text%3E%3C/svg%3E">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='28' fill='%23FFD100'/%3E%3Ctext x='50%25' y='53%25' dominant-baseline='central' text-anchor='middle' font-family='system-ui, -apple-system, sans-serif' font-weight='900' font-size='62' fill='%23000000'%3ES%3C/text%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
@@ -198,17 +210,20 @@ async def serve_ui():
     }
 
     .brand-logo {
-      width: 38px;
-      height: 38px;
-      background: linear-gradient(135deg, var(--sprint-yellow), #FFA000);
-      border-radius: 10px;
+      width: 40px;
+      height: 40px;
+      background: #FFD100;
+      border-radius: 11px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-weight: 800;
-      color: #000;
-      font-size: 20px;
-      box-shadow: 0 4px 16px rgba(255, 209, 0, 0.3);
+      font-weight: 900;
+      color: #000000;
+      font-size: 24px;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      box-shadow: 0 0 20px rgba(255, 209, 0, 0.45);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      user-select: none;
     }
 
     .brand-title {

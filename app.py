@@ -22,6 +22,8 @@ from src.rag.generate_replies import GroundedReplyGenerator
 from src.escalation.handler_contract import HandlerContract
 from eval.run_harness import FaithfulnessScorer
 from src.web.login_html import get_login_page_html
+from dotenv import load_dotenv
+load_dotenv()
 
 if sys.platform == "win32":
     sys.stdout.reconfigure(encoding="utf-8")
@@ -1759,7 +1761,8 @@ async def serve_ui():
 
 
 if __name__ == "__main__":
-    port = 8000
-    print(f"Starting SprintCare AI Support Console on http://localhost:{port}")
-    uvicorn.run("app:app", host="127.0.0.1", port=port, reload=False)
+    port = int(os.getenv("PORT", "8000"))
+    host = os.getenv("HOST", "127.0.0.1")
+    print(f"Starting SprintCare AI Support Console on http://{host}:{port}")
+    uvicorn.run("app:app", host=host, port=port, reload=False)
 

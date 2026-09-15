@@ -8,6 +8,7 @@ with Twitter dialogue simulator, pipeline inspection drawer, and live benchmark 
 import os
 import sys
 import json
+import time
 from typing import Dict, List, Any, Optional
 from fastapi import FastAPI, Request, Response
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -20,6 +21,7 @@ from src.rag.build_index import RAGRetriever
 from src.rag.generate_replies import GroundedReplyGenerator
 from src.escalation.handler_contract import HandlerContract
 from eval.run_harness import FaithfulnessScorer
+from src.web.login_html import get_login_page_html
 
 if sys.platform == "win32":
     sys.stdout.reconfigure(encoding="utf-8")
@@ -57,6 +59,52 @@ print("Pipeline components ready!")
 class ChatRequest(BaseModel):
     query: str
     history: Optional[List[str]] = []
+
+
+class LoginRequest(BaseModel):
+    username: str
+    password: Optional[str] = ""
+    role: Optional[str] = "Tier-1 Customer Care Specialist"
+
+
+@app.post("/api/auth/login")
+async def api_login(req: LoginRequest):
+    """Authenticates support agents and supervisors for enterprise console access."""
+    username = req.username.strip()
+    if not username:
+        return JSONResponse(status_code=400, content={"status": "error", "message": "Username or Employee ID is required."})
+
+    # Map demo profiles or derive display name
+    if "david" in username.lower():
+        name = "David Chen"
+        role = "Tier-2 Senior Retention & Fraud Lead"
+        initials = "DC"
+    elif "sarah" in username.lower() or "demo" in username.lower():
+        name = "Sarah Miller"
+        role = "Tier-1 Customer Care Specialist"
+        initials = "SM"
+    else:
+        name = username.split("@")[0].replace(".", " ").title()
+        role = req.role or "Tier-1 Customer Care Specialist"
+        initials = "".join([part[0].upper() for part in name.split()[:2]]) if name else "AG"
+
+    return JSONResponse(content={
+        "status": "ok",
+        "token": f"sprintcare-jwt-live-{int(time.time())}",
+        "user": {
+            "username": username,
+            "name": name,
+            "role": role,
+            "initials": initials,
+            "login_time": time.strftime("%Y-%m-%d %H:%M:%S"),
+        }
+    })
+
+
+@app.get("/login", response_class=HTMLResponse)
+async def serve_login():
+    """Serves the ultra-premium UI/UX Pro Max login portal."""
+    return HTMLResponse(content=get_login_page_html())
 
 
 @app.get("/api/metrics")
@@ -367,6 +415,79 @@ async def serve_ui():
 
     .tab-btn.active svg {
       fill: #000;
+    }
+
+    .user-profile-badge {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(0, 0, 0, 0.45);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-pill);
+      padding: 4px 6px 4px 12px;
+      margin-left: 0.5rem;
+      transition: var(--transition-spring);
+    }
+
+    .user-profile-badge:hover {
+      border-color: rgba(255, 209, 0, 0.3);
+      background: rgba(0, 0, 0, 0.6);
+    }
+
+    .user-avatar {
+      width: 30px;
+      height: 30px;
+      background: var(--sprint-yellow);
+      color: #000;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 11px;
+      font-family: var(--font-display);
+      box-shadow: 0 0 10px var(--sprint-yellow-glow);
+    }
+
+    .user-meta {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.2;
+    }
+
+    .user-name {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      font-family: var(--font-display);
+    }
+
+    .user-role-label {
+      font-size: 0.68rem;
+      color: var(--sprint-yellow);
+      font-family: var(--font-mono);
+    }
+
+    .logout-btn {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--text-secondary);
+      border-radius: var(--radius-pill);
+      padding: 5px 12px;
+      font-size: 0.74rem;
+      font-family: var(--font-display);
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: var(--transition-spring);
+    }
+
+    .logout-btn:hover {
+      background: rgba(255, 23, 68, 0.2);
+      border-color: rgba(255, 23, 68, 0.4);
+      color: #FF5252;
     }
 
     /* ==========================================================================
@@ -1055,6 +1176,18 @@ async def serve_ui():
           Benchmark Analytics
         </button>
       </div>
+
+      <div class="user-profile-badge" id="userProfileBadge">
+        <div class="user-avatar" id="navUserAvatar">SM</div>
+        <div class="user-meta">
+          <span class="user-name" id="navUserName">Sarah Miller</span>
+          <span class="user-role-label" id="navUserRole">Tier-1 Specialist</span>
+        </div>
+        <button class="logout-btn" onclick="handleLogout()" title="Sign Out of Terminal">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          Sign Out
+        </button>
+      </div>
     </div>
   </header>
 
@@ -1390,6 +1523,35 @@ async def serve_ui():
        CLIENT-SIDE APPLICATION LOGIC
        ========================================================================= -->
   <script>
+    // Session & Auth Guard
+    (function initAuth() {
+      const authRaw = localStorage.getItem('sprintcare_auth');
+      if (!authRaw) {
+        window.location.href = '/login';
+        return;
+      }
+      try {
+        const auth = JSON.parse(authRaw);
+        if (!auth || !auth.token) {
+          window.location.href = '/login';
+          return;
+        }
+        const nameEl = document.getElementById('navUserName');
+        const roleEl = document.getElementById('navUserRole');
+        const avatarEl = document.getElementById('navUserAvatar');
+        if (nameEl && auth.name) nameEl.innerText = auth.name;
+        if (roleEl && auth.role) roleEl.innerText = auth.role;
+        if (avatarEl && auth.initials) avatarEl.innerText = auth.initials;
+      } catch (e) {
+        window.location.href = '/login';
+      }
+    })();
+
+    function handleLogout() {
+      localStorage.removeItem('sprintcare_auth');
+      window.location.href = '/login';
+    }
+
     const inputArea = document.getElementById('customerInput');
     const charCountLabel = document.getElementById('charCountLabel');
     const progressCircle = document.getElementById('charProgressCircle');
